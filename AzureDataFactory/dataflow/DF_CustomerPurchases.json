@@ -1,0 +1,107 @@
+{
+	"name": "DF_CustomerPurchases",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_adls2_karthikstrgservice_oltp_Purchase",
+						"type": "DatasetReference"
+					},
+					"name": "Purchaseorders"
+				},
+				{
+					"dataset": {
+						"referenceName": "DS_adls2_karthikstrgserive_oltp_Customers",
+						"type": "DatasetReference"
+					},
+					"name": "Customer"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "DS_adls2_karthikstrgservice_oltp_output",
+						"type": "DatasetReference"
+					},
+					"name": "output"
+				}
+			],
+			"transformations": [
+				{
+					"name": "purchaseorderselected"
+				},
+				{
+					"name": "customerselected"
+				},
+				{
+					"name": "qaulitycheck"
+				},
+				{
+					"name": "join1"
+				},
+				{
+					"name": "customerpurchases"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          PurchaseOrderId as string,",
+				"          CustomerCode as string,",
+				"          ProductCode as string,",
+				"          EmployeeCode as string,",
+				"          PurchaseOrderDate as string,",
+				"          Quantity as long,",
+				"          UnitPrice as long",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> Purchaseorders",
+				"source(output(",
+				"          CustomerCode as string,",
+				"          CustomerName as string,",
+				"          Address as string,",
+				"          PhoneNumber as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> Customer",
+				"Purchaseorders select(mapColumn(",
+				"          CustomerCode,",
+				"          Quantity",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> purchaseorderselected",
+				"Customer select(mapColumn(",
+				"          CustomerCode,",
+				"          CustomerName",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> customerselected",
+				"purchaseorderselected filter(greater((Quantity), 0)) ~> qaulitycheck",
+				"qaulitycheck, customerselected join(purchaseorderselected@CustomerCode == customerselected@CustomerCode,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> join1",
+				"join1 aggregate(groupBy(purchaseorderselected@CustomerCode,",
+				"          CustomerName),",
+				"     Quantity = sum(Quantity)) ~> customerpurchases",
+				"customerpurchases sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          CustomerCode as string,",
+				"          CustomerName as string,",
+				"          Address as string,",
+				"          PhoneNumber as string",
+				"     ),",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> output"
+			]
+		}
+	}
+}

@@ -1,0 +1,9 @@
+{
+	"name": "tkkdatafactory",
+	"location": "centralindia",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "5050b5b0-c073-4e62-b8c6-56f581f836c3",
+		"tenantId": "e8b393e8-4ea4-4346-91a2-a19250e4b202"
+	}
+}
